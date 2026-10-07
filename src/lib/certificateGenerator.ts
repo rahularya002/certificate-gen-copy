@@ -1,14 +1,10 @@
-import React from 'react';
 import { jsPDF } from 'jspdf';
-import { Document, Packer, Paragraph, TextRun, AlignmentType, ImageRun } from 'docx';
+import { Document, Packer, Paragraph, TextRun, AlignmentType } from 'docx';
 import { renderDocxTemplate } from '@/lib/templateDocxRenderer';
 import { saveAs } from 'file-saver';
 import QRCode from 'qrcode';
 import mammoth from 'mammoth';
 import html2canvas from 'html2canvas';
-import { pdf } from '@react-pdf/renderer';
-import ReactPdfCertificate from '@/lib/reactPdfRenderer';
-import JSZip from 'jszip';
 
 export interface CertificateData {
   participantName: string;
@@ -51,21 +47,17 @@ export class CertificateGenerator {
     }
   }
 
-  static async generatePDF(data: CertificateData, filename: string): Promise<Blob> {
+  static async generatePDF(): Promise<Blob> {
     throw new Error('Hardcoded PDF generation is disabled. Use template-based generation only.');
   }
 
   static async generatePDFFromTemplate(templateArrayBuffer: ArrayBuffer, mappedData: Record<string, any>, qrDataUrl?: string): Promise<Blob> {
     try {
-      console.log('[CertificateGenerator] Using your DOCX template for PDF generation...');
       
       // First, render the DOCX template with data
-      console.log('[CertificateGenerator] Rendering DOCX template with data...');
       const docxBlob = renderDocxTemplate({ templateArrayBuffer, data: mappedData, qrCodeDataUrl: qrDataUrl });
-      console.log('[CertificateGenerator] DOCX template rendered, blob size:', docxBlob.size);
       
       // For now, return the DOCX blob (PDF conversion will be done separately)
-      console.log('[CertificateGenerator] Returning DOCX blob');
       return docxBlob;
       
     } catch (error) {
@@ -74,11 +66,9 @@ export class CertificateGenerator {
     }
   }
 
-  static async convertToPDF(blob: Blob, filename: string): Promise<Blob> {
+  static async convertToPDF(blob: Blob): Promise<Blob> {
     try {
-      console.log('[CertificateGenerator] Converting to PDF...');
       const pdfBlob = await this.convertDocxToPdf(blob);
-      console.log('[CertificateGenerator] PDF conversion completed');
       return pdfBlob;
     } catch (pdfError) {
       console.error('[CertificateGenerator] PDF conversion failed:', pdfError);
@@ -94,7 +84,6 @@ export class CertificateGenerator {
         try {
           const arrayBuffer = e.target?.result as ArrayBuffer;
           
-          console.log('[convertDocxToPdf] Converting DOCX to HTML...');
           
           // Convert DOCX to HTML using mammoth - use minimal options to avoid issues
           let result;
@@ -178,7 +167,6 @@ export class CertificateGenerator {
           
           await new Promise(resolve => setTimeout(resolve, 200));
           
-          console.log('[convertDocxToPdf] Converting HTML to PDF...');
           
           // Convert HTML to canvas to PDF
           const canvas = await html2canvas(tempDiv, {
@@ -214,7 +202,6 @@ export class CertificateGenerator {
           }
           
           const pdfBlob = pdf.output('blob');
-          console.log('[convertDocxToPdf] PDF conversion completed');
           resolve(pdfBlob);
         } catch (error) {
           console.error('[convertDocxToPdf] Error:', error);
@@ -231,7 +218,7 @@ export class CertificateGenerator {
     });
   }
 
-  static async generateDOCX(data: CertificateData, filename: string): Promise<Blob> {
+  static async generateDOCX(data: CertificateData): Promise<Blob> {
     // Keep a minimal fallback DOCX for direct downloads when a template isn't provided
     const doc = new Document({
       sections: [{
@@ -260,7 +247,7 @@ export class CertificateGenerator {
       if (format === 'pdf') {
         throw new Error('PDF generation requires a template. Use generatePDFFromTemplate instead.');
       } else {
-        blob = await this.generateDOCX(data, filename);
+        blob = await this.generateDOCX(data);
       }
 
       // Download the file

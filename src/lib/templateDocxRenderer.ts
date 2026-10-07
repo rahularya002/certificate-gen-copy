@@ -10,7 +10,6 @@ export interface RenderContext {
 }
 
 export function renderDocxTemplate({ templateArrayBuffer, data, qrCodeDataUrl }: RenderContext): Blob {
-  console.log('[renderDocxTemplate] Starting template rendering...');
   const zip = new PizZip(templateArrayBuffer)
   
   // Clean up broken placeholders in the document.xml
@@ -83,7 +82,6 @@ export function renderDocxTemplate({ templateArrayBuffer, data, qrCodeDataUrl }:
     
     // Update the document.xml with cleaned content
     zip.file('word/document.xml', xmlContent);
-    console.log('[renderDocxTemplate] Cleaned up broken placeholders in document.xml');
   }
   
   // Replace QR placeholders with an internal marker so docxtemplater doesn't consume it
@@ -136,25 +134,18 @@ export function renderDocxTemplate({ templateArrayBuffer, data, qrCodeDataUrl }:
     enriched.candidateId = enriched.CandidateId;
   }
 
-  console.log('[renderDocxTemplate] Setting data:', Object.keys(enriched));
-  console.log('[renderDocxTemplate] Data values:', enriched);
   
   // Check for any unmapped placeholders in the template (after cleanup)
   const templateText = zip.file('word/document.xml').asText();
-  const placeholderMatches = templateText.match(/\{\{[^}]+\}\}/g);
-  console.log('[renderDocxTemplate] Found placeholders in template (after cleanup):', placeholderMatches);
   
   try {
-    console.log('[renderDocxTemplate] Rendering template...');
     // New docxtemplater API: pass data directly to render instead of using setData
     doc.render(enriched)
-    console.log('[renderDocxTemplate] Template rendered successfully');
   } catch (e) {
     console.error('[renderDocxTemplate] Error rendering template:', e);
     console.error('[renderDocxTemplate] Template text preview:', templateText.substring(0, 500));
     throw e
   }
-  console.log('[renderDocxTemplate] Generating blob...');
   // If QRCode image data is provided, replace any marker [[QR_INLINE_IMG]] with an inline image
   if (qrCodeDataUrl && qrCodeDataUrl.startsWith('data:image')) {
     try {
@@ -232,7 +223,6 @@ export function renderDocxTemplate({ templateArrayBuffer, data, qrCodeDataUrl }:
             console.warn('[renderDocxTemplate] QR marker still present after replacements');
             qrMarkerStillPresent = true;
           } else {
-            console.log('[renderDocxTemplate] QR image injected successfully');
           }
 
           // FINAL FALLBACK: If we still couldn't find/replace the marker,
@@ -283,7 +273,6 @@ export function renderDocxTemplate({ templateArrayBuffer, data, qrCodeDataUrl }:
   }
 
   const out = doc.getZip().generate({ type: 'blob' })
-  console.log('[renderDocxTemplate] Blob generated, size:', out.size);
   return out as Blob
 }
 
